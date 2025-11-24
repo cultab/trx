@@ -1,4 +1,5 @@
 use crate::ui::{draw::draw_ui, input::InputMode};
+
 use color_eyre::Result;
 use ratatui::{
     DefaultTerminal,
@@ -120,12 +121,12 @@ impl App {
                 thread::spawn(move || {
                     let pac_handle = thread::spawn({
                         let q = query.clone();
-                        move || managers::search_pacman(&q)
+                        move || managers::pacman::search_pacman(&q, &q)
                     });
 
                     let aur_handle = thread::spawn({
                         let q = query.clone();
-                        move || managers::search_aur(&q)
+                        move || managers::yay::search_aur(&q, &q)
                     });
 
                     let mut all = pac_handle.join().unwrap_or_default();
@@ -176,11 +177,11 @@ impl App {
         }
 
         if !pacman_pkgs.is_empty() {
-            managers::pacman_installation(terminal, &pacman_pkgs)?;
+            managers::pacman::pacman_install(terminal, &pacman_pkgs)?;
         }
 
         if !aur_pkgs.is_empty() {
-            managers::aur_installation(terminal, &aur_pkgs)?;
+            managers::yay::aur_install(terminal, &aur_pkgs)?;
         }
 
         Ok(())

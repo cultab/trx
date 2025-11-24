@@ -81,7 +81,7 @@ src/
 ├── main.rs           # Runtime initialization
 ├── app.rs            # Global app state + reducer
 ├── ui/               # TUI components, widgets, layout
-├── managers/         # Package manager backends (currently mod.rs has everything)
+├── managers/         # Package manager backends
 │   ├── pacman.rs
 │   ├── yay.rs
 │   ├── apt.rs (planned)

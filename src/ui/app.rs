@@ -119,15 +119,18 @@ impl App {
                 let tx = self.result_tx.clone();
 
                 thread::spawn(move || {
+                    // spawn pacman search
                     let pac_handle = thread::spawn({
                         let q = query.clone();
-                        move || managers::pacman::search_pacman(&q, &q)
+                        move || managers::pacman::search_pacman(&q)
                     });
 
                     let aur_handle = thread::spawn({
                         let q = query.clone();
-                        move || managers::yay::search_aur(&q, &q)
+                        move || managers::yay::search_aur(&q)
                     });
+
+                    // get pacman results
 
                     let mut all = pac_handle.join().unwrap_or_default();
                     all.extend(aur_handle.join().unwrap_or_default());
@@ -138,6 +141,7 @@ impl App {
                             .unwrap_or(std::cmp::Ordering::Equal)
                     });
 
+                    // keep only top 50
                     all.truncate(50);
 
                     let _ = tx.send(all);
@@ -150,7 +154,6 @@ impl App {
             }
         }
     }
-
     fn run_command(
         &self,
         terminal: &mut DefaultTerminal,

@@ -3,84 +3,79 @@ pub fn fuzzy_match(query: &str, target: &str) -> f64 {
         return 0.0;
     }
 
-    let query_lower: Vec<char> = query.to_lowercase().chars().collect();
-    let target_lower: Vec<char> = target.to_lowercase().chars().collect();
+    let q: Vec<char> = query.to_lowercase().chars().collect();
+    let t: Vec<char> = target.to_lowercase().chars().collect();
 
-    let indices = match fuzzy_get_indexes(&query_lower, &target_lower) {
-        Some(i) => i,
-        None => return 0.0,
+    let Some(indices) = fuzzy_get_indexes(&q, &t) else {
+        return 0.0;
     };
 
-    if indices.len() != query_lower.len() {
-        return 0.0;
-    }
-
-    calculate_score(&query_lower, &target_lower, &indices)
+    calculate_score(&q, &t, &indices)
 }
+
 pub fn fuzzy_get_indexes(query: &[char], target: &[char]) -> Option<Vec<usize>> {
-    let mut indices = Vec::with_capacity(query.len());
-    let mut target_idx = 0;
+    let mut out = Vec::with_capacity(query.len());
+    let mut ti = 0;
 
-    for &query_char in query {
-        let found = target[target_idx..].iter().position(|&c| c == query_char);
+    for &qc in query {
+        let mut found = None;
 
-        match found {
-            Some(pos) => {
-                indices.push(target_idx + pos);
-                target_idx += pos + 1;
+        while ti < target.len() {
+            if target[ti] == qc {
+                found = Some(ti);
+                ti += 1;
+                break;
             }
-            None => return None,
+            ti += 1;
+        }
+
+        if let Some(idx) = found {
+            out.push(idx);
+        } else {
+            return None;
         }
     }
 
-    Some(indices)
+    Some(out)
 }
 
+//fuzzy scoring inspired from VSCode fuzzy finder algorithm
 pub fn calculate_score(query: &[char], target: &[char], indices: &[usize]) -> f64 {
-    if indices.is_empty() || query.is_empty() {
+    if query.is_empty() || indices.is_empty() {
         return 0.0;
     }
 
-    let query_len = query.len() as f64;
-    let target_len = target.len() as f64;
+    let tlen = target.len() as f64;
 
-    let match_ratio = query_len / target_len.max(1.0);
+    let mut score = 0.0;
+    let mut consecutive = 0;
 
-    let first_match_bonus = 1.0 - (indices[0] as f64 / target_len.max(1.0));
+    for (i, &idx) in indices.iter().enumerate() {
+        score += 1.0;
 
-    let mut consecutive_count = 0;
-    for i in 1..indices.len() {
-        if indices[i] == indices[i - 1] + 1 {
-            consecutive_count += 1;
+        if i > 0 && indices[i - 1] + 1 == idx {
+            consecutive += 1;
+            score += 1.0 + (consecutive as f64) * 0.3;
+        } else {
+            consecutive = 0;
+        }
+
+        if idx == 0 {
+            score += 4.0;
+        }
+
+        if idx > 0 {
+            let prev = target[idx - 1];
+            if prev == '-' || prev == '_' || prev == '/' || prev == '.' || prev == ' ' {
+                score += 2.5;
+            }
+        }
+
+        if i > 0 {
+            let gap = (idx as i32 - indices[i - 1] as i32 - 1).max(0) as f64;
+            score -= gap * 0.15;
         }
     }
-    let consecutiveness = consecutive_count as f64 / query_len.max(1.0);
 
-    let span = if indices.len() > 1 {
-        (indices[indices.len() - 1] - indices[0] + 1) as f64
-    } else {
-        1.0
-    };
-    let compactness = query_len / span;
-
-    let word_boundary_bonus = if indices[0] == 0 {
-        0.8
-    } else if indices[0] > 0 {
-        let prev_char = target[indices[0] - 1];
-        if prev_char == ' ' || prev_char == '-' || prev_char == '_' || prev_char == '/' {
-            0.5
-        } else {
-            0.0
-        }
-    } else {
-        0.0
-    };
-
-    let score = match_ratio * 0.3
-        + first_match_bonus * 0.2
-        + consecutiveness * 0.3
-        + compactness * 0.1
-        + word_boundary_bonus * 0.1;
-
-    score
+    score / (tlen * 0.15 + 1.0)
 }

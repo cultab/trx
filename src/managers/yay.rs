@@ -18,7 +18,7 @@ fn normalize_aur_value(v: &serde_json::Value) -> String {
     }
 }
 
-pub fn search_aur(search_word: &str, query: &str) -> Vec<Package> {
+pub fn search_aur(search_word: &str) -> Vec<Package> {
     if search_word.trim().is_empty() {
         return Vec::new();
     }
@@ -29,7 +29,7 @@ pub fn search_aur(search_word: &str, query: &str) -> Vec<Package> {
         Ok(output) if output.status.success() => {
             let s = String::from_utf8_lossy(&output.stdout);
             let lines: Vec<&str> = s.lines().collect();
-            super::parse_alternating_lines(&lines, "aur".into(), query)
+            super::parse_alternating_lines(&lines, "aur".into(), search_word)
         }
         _ => Vec::new(),
     }

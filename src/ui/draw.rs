@@ -71,16 +71,20 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
             .iter()
             .enumerate()
             .map(|(_i, p)| {
-                // package name and provider
-                let package: Vec<&str> = p.name.split('/').collect();
-                let pkg_name = if package.get(1).unwrap_or(&"").len() > 24 {
-                    format!("{}...", &package.get(1).unwrap_or(&"")[..22])
-                } else {
-                    package.get(1).unwrap_or(&"").to_string()
-                };
-                let provider = package.get(0).unwrap_or(&"");
+                let parts: Vec<&str> = p.name.split('/').collect();
 
-                // version formatting
+                let name = parts.last().unwrap();
+
+                let pkg_name = if name.len() > 16 {
+                    let slice = &name[..14]; // now the slice lives long enough
+                    format!("{}...", slice)
+                } else {
+                    name.to_string()
+                };
+                // correct name
+                //let provider = if parts.len() > 1 { parts[0] } else { "pacman" };
+
+                let provider = format!("{}", &p.provider);
                 let version = if p.version.len() > 12 {
                     format!("{}...", &p.version[..8])
                 } else {
@@ -94,13 +98,13 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
                 };
 
                 let content = Span::raw(format!(
-                    "{} {: <28} {: <20} {}",
+                    "{} {:<28} {:<20} {}",
                     checked_symbol, pkg_name, version, provider
                 ));
 
                 ListItem::new(Line::from(content))
             })
-            .collect()
+            .collect::<Vec<ListItem>>()
     };
 
     // Create a List with a highlight style and symbol

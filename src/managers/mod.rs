@@ -4,8 +4,6 @@ pub mod yay;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::fuzzy;
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Package {
     pub provider: String,
@@ -15,6 +13,7 @@ pub struct Package {
     pub score: f64,
 }
 
+//makes a DETAILS_CACHE which is global
 lazy_static::lazy_static! {
     pub static ref DETAILS_CACHE: Arc<Mutex<HashMap<String, HashMap<String, String>>>> =
         Arc::new(Mutex::new(HashMap::new()));
@@ -36,7 +35,7 @@ pub fn parse_alternating_lines(lines: &[&str], manager: String, query: &str) -> 
             let description = second_line.trim().to_string();
 
             let package_name = package.split('/').last().unwrap_or(&package).to_string();
-            let score = fuzzy::fuzzy_match(query, &package_name);
+            let score = crate::fuzzy::fuzzy_match(query, &package_name);
 
             res.push(Package {
                 provider: manager.clone(),
@@ -68,9 +67,9 @@ pub fn details_package(package: &str, provider: &str) -> Option<HashMap<String, 
         }
     }
 
-    let pure_name = package.split('/').last().unwrap_or(package);
-
-    let info = match provider {
+    let pure_name = package.split('/').last().unwrap();
+    let provide = provider.split('/').next().unwrap();
+    let info = match provide {
         "aur" => yay::aur_details(pure_name)?,
         "pacman" => pacman::pacman_details(pure_name)?,
         _ => return None,
